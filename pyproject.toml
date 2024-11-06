@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 tiktoken = "^0.8.0"
+google-cloud-aiplatform = {version = "^1.71.1", extras = ["tokenization"]}
 
 
 [build-system]
