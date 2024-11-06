@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "nebius-academy"
+version = "0.1.0"
+description = ""
+authors = ["kirill <gugaevkirill@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+tiktoken = "^0.8.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

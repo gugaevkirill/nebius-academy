@@ -1,1 +1,1 @@
-# nebius-academy
+# Nebius Academy
