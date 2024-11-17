@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.11"
 tiktoken = "^0.8.0"
 google-cloud-aiplatform = {version = "^1.71.1", extras = ["tokenization"]}
+openai = "^1.54.4"
+anthropic = "^0.39.0"
 
 
 [build-system]
