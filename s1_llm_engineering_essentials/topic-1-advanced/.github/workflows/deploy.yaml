@@ -1,0 +1,74 @@
+name: Build, Push Docker Images, and Update K8s
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'k8s/**'
+      - 'gateway_service/**'
+      - 'inference_service/**'
+      - '.github/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Authenticate to Nebius
+      run: |
+        rm -rf ~/.nebius
+        curl -sSL https://storage.ai.nebius.cloud/nebius/install.sh | bash
+        echo "${{ secrets.NEBIUS_CONFIG }}" > ~/.nebius/config.yaml
+
+    - name: Add Nebius bin to PATH
+      run: echo "$HOME/.nebius/bin" >> $GITHUB_PATH
+
+    - name: Configure docker to use Nebius as a credential helper
+      run: |
+        nebius registry configure-helper
+
+    - name: Build and push inference-service image
+      run: |
+        export IMAGE_TAG=cr.eu-north1.nebius.cloud/${{ secrets.NEBIUS_REGISTRY_ID }}/inference-service:${{ github.sha }}
+        docker build -t $IMAGE_TAG ./inference_service
+        docker push $IMAGE_TAG
+        sed -i "s|image: .*inference-service:.*|image: ${IMAGE_TAG}|" k8s/gpt-4-mini-deployment.yaml
+        sed -i "s|image: .*inference-service:.*|image: ${IMAGE_TAG}|" k8s/gpt-4o-deployment.yaml
+
+    - name: Build and push gateway-service image
+      run: |
+        export IMAGE_TAG=cr.eu-north1.nebius.cloud/${{ secrets.NEBIUS_REGISTRY_ID }}/gateway-service:${{ github.sha }}
+        docker build -t $IMAGE_TAG ./gateway_service
+        docker push $IMAGE_TAG
+        sed -i "s|image: .*gateway-service:.*|image: ${IMAGE_TAG}|" k8s/gateway-service-deployment.yaml
+
+    - name: Commit and push updated Kubernetes manifests
+      run: |
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add k8s/gpt-4-mini-deployment.yaml k8s/gateway-service-deployment.yaml
+        git commit -m "Update Kubernetes manifests with new image tags"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install kubectl
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y kubectl
+
+    - name: Configure cluster
+      run: |
+        nebius mk8s cluster get-credentials --id ${{ secrets.NEBIUS_CLUSTER_ID }} --external
+
+    - name: Apply Kubernetes manifests
+      run: |
+        kubectl apply -f k8s/

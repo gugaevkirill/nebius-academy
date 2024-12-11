@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpt-4-mini
+spec:
+  selector:
+    matchLabels:
+      app: gpt-4-mini
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: gpt-4-mini
+    spec:
+      containers:
+      - name: gpt-4-mini
+        image: cr.eu-north1.nebius.cloud/e00cb48crsdh2dy7n3/inference-service:fe7ce8641b3711399e800ea557c01950cd869780
+        ports:
+        - containerPort: 8000
+        env:
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: OPENAI_API_KEY
+        - name: MODEL_NAME
+          value: "gpt-4o-mini"
+        resources:
+          requests:
+            cpu: "10m"
+          limits:
+            cpu: "20m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpt-4-mini
+spec:
+  selector:
+    app: gpt-4-mini
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
